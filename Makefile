@@ -73,7 +73,7 @@ all: $(TARGETS) hwlatdetect
 -include $(sources:.c=.d)
 
 cyclictest: cyclictest.o librttest.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB) $(NUMA_LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) -llttng-ust $(RTTESTLIB) $(NUMA_LIBS)
 
 signaltest: signaltest.o librttest.a
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS) $(RTTESTLIB)

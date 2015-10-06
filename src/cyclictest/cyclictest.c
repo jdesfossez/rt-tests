@@ -38,6 +38,8 @@
 #include <sys/mman.h>
 #include "rt_numa.h"
 
+#include <lttng/tracef.h>
+
 #include "rt-utils.h"
 
 #define DEFAULT_INTERVAL 1000
@@ -166,6 +168,7 @@ struct thread_stat {
 
 static int shutdown;
 static int tracelimit = 0;
+static int tracepointlimit = 0;
 static int notrace = 0;
 static int ftrace = 0;
 static int kernelversion;
@@ -942,6 +945,10 @@ void *timerthread(void *param)
 			break_thread_value = diff;
 			pthread_mutex_unlock(&break_thread_id_lock);
 		}
+
+		if (!stopped && tracepointlimit && (diff > tracepointlimit)) {
+			tracef("cyclictest %llu > %llu", diff, tracepointlimit);
+		}
 		stat->act = diff;
 
 		if (par->bufmsk)
@@ -1220,7 +1227,7 @@ enum option_values {
 	OPT_QUIET, OPT_PRIOSPREAD, OPT_RELATIVE, OPT_RESOLUTION, OPT_SYSTEM,
 	OPT_SMP, OPT_THREADS, OPT_TRACER, OPT_UNBUFFERED, OPT_NUMA, OPT_VERBOSE,
 	OPT_WAKEUP, OPT_WAKEUPRT, OPT_DBGCYCLIC, OPT_POLICY, OPT_HELP, OPT_NUMOPTS,
-	OPT_ALIGNED, OPT_LAPTOP, OPT_SECALIGNED,
+	OPT_ALIGNED, OPT_LAPTOP, OPT_SECALIGNED, OPT_TRACEPOINT,
 };
 
 /* Process commandline options */
@@ -1249,6 +1256,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"event",            no_argument,       NULL, OPT_EVENT },
 			{"ftrace",           no_argument,       NULL, OPT_FTRACE },
 			{"fifo",             required_argument, NULL, OPT_FIFO },
+			{"lttng-ust",        required_argument, NULL, OPT_TRACEPOINT },
 			{"histogram",        required_argument, NULL, OPT_HISTOGRAM },
 			{"histofall",        required_argument, NULL, OPT_HISTOFALL },
 			{"interval",         required_argument, NULL, OPT_INTERVAL },
@@ -1282,7 +1290,7 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			{"help",             no_argument,       NULL, OPT_HELP },
 			{NULL, 0, NULL, 0}
 		};
-		int c = getopt_long(argc, argv, "a::A::b:Bc:Cd:D:Efh:H:i:Il:MnNo:O:p:PmqrRsSt::uUvD:wWT:",
+		int c = getopt_long(argc, argv, "a::A::b:Bc:Cd:D:Efg:h:H:i:Il:MnNo:O:p:PmqrRsSt::uUvD:wWT:",
 				    long_options, &option_index);
 		if (c == -1)
 			break;
@@ -1342,6 +1350,9 @@ static void process_options (int argc, char *argv[], int max_cpus)
 			strncpy(fifopath, optarg, strlen(optarg));
 			break;
 
+		case 'g':
+		case OPT_TRACEPOINT:
+			tracepointlimit = atoi(optarg); break;
 		case 'H':
 		case OPT_HISTOFALL:
 			histofall = 1; /* fall through */
